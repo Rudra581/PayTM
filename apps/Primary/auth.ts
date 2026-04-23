@@ -1,0 +1,56 @@
+import NextAuth from "next-auth";
+import authConfig from "./auth.config";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@repo/db";
+import { getUserById } from "./data/user";
+
+// 1. Initialize without exporting immediately
+const { 
+    handlers: { GET, POST }, 
+    auth, 
+    signIn, 
+    signOut 
+}  : any = NextAuth({
+    callbacks: {
+        async signIn({ user, account }) {
+            if (account?.provider !== "credentials") {
+                return true;
+            }
+
+            const existingUser = await getUserById(user.id ?? "");
+            
+            if(!existingUser?.emailVerified) {
+                return false;
+            }
+
+            return true;
+        },
+        async session({ token, session }) {
+            return {
+              ...session,
+              user: {
+                ...session.user,
+                id: token.sub,
+                isOAuth: token.isOauth,
+              },
+            };
+        },
+        async jwt({ token }) {
+            if (!token.sub) return token;
+            const existingUser = await getUserById(token.sub);
+      
+            if (!existingUser) return token;
+            token.name = existingUser.name;
+            token.email = existingUser.email;
+      
+            return token;
+        },
+    },
+    ...authConfig,
+    session: {
+        strategy: "jwt",
+    },
+    adapter: PrismaAdapter(prisma),
+});
+export const handlers = { GET, POST };
+export { GET, POST, auth, signIn, signOut };
