@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String?   @unique
+  emailVerified     DateTime?
+  name          String?   @unique
+  
+  number            String?    @unique 
+  password          String    
+  
+
+  OnRampTransaction OnRampTransaction[]
+  Balance           Balance[]
+  sentTransfers     p2pTransfer[]       @relation(name: "FromUserRelation")
+  receivedTransfers p2pTransfer[]       @relation(name: "ToUserRelation")
+  sendRequest PaymentReq[]    @relation(name:"RequestFrom")
+  recevieReq PaymentReq[]     @relation(name: "RequestTO")
+  
+}
+
+model Merchant {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  auth_type AuthType 
+}
+
+model OnRampTransaction {
+  id        String       @id @default(cuid())
+  status    OnRampStatus
+  token     String       @unique // Unique ID from payment gateway (Stripe/Razorpay)
+  provider  String       // e.g., "HDFC Bank", "Axis Bank"
+  amount    Int          // Stored in PAISE (₹100.00 = 10000)
+  startTime DateTime     @default(now())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+}
+
+model Balance {
+  id      String @id @default(cuid())
+  userId  String @unique
+  amount  Int    @default(0) // Current Spendable Balance
+  locked  Int    @default(0) // For pending/escrow transactions
+  user    User   @relation(fields: [userId], references: [id])
+}
+
+model p2pTransfer {
+  id         String   @id @default(cuid())
+  amount     Int      // Amount in Paise
+  timestamp  DateTime @default(now())
+  status     Status
+  fromUserId String 
+  fromUser   User     @relation(name: "FromUserRelation", fields: [fromUserId], references: [id])
+  
+  toUserId   String 
+  toUser     User     @relation(name: "ToUserRelation", fields: [toUserId], references: [id])
+}
+
+model VerificationToken {
+  id String @id @default(cuid())
+  email String
+  token String
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PaymentReq{
+  id String @id @default(cuid())
+  fromUserId String
+  toUserId String
+  amount Int
+  note String
+  createdAt DateTime @default(now())
+  status PaymentReqStatus
+
+  fromUser User @relation("RequestFrom" , fields: [fromUserId] , references: [id])
+  toUser  User @relation("RequestTO" , fields: [toUserId] , references: [id])
+}
+
+enum PaymentReqStatus {
+PENDING 
+PAID 
+DECLINED
+}
+enum OnRampStatus {
+  Success
+  Failure
+  Processing
+}
+
+enum AuthType {
+  Google
+  Github
+}
+
+enum Status {
+  success
+  failed
+}
+
+// model User {
+//   id    Int     @id @default(autoincrement())
+//   email String?  @unique
+//   emailVerified DateTime?
+//   username  String? @unique
+//   image   String?
+//   number String @unique
+//   password String 
+//   OnRampTransaction OnRampTransaction[]
+//   Balance Balance[]
+//   sentTransfers     p2pTransfer[]       @relation(name: "FromUserRelation")
+//   receivedTransfers p2pTransfer[]       @relation(name: "ToUserRelation")
+//   accounts      Account[]
+//   sessions      Session[]
+// }
+// model Merchant{
+//   id Int @unique @default(autoincrement())
+//   email String  @unique
+//   name String?
+//   auth_type AuthType 
+
+// }
+// model OnRampTransaction {
+//   id        Int          @id @default(autoincrement())
+//   status    OnRampStatus
+//   token     String       @unique
+//   provider  String
+//   amount    Int
+//   startTime DateTime
+//   userId    Int
+//   user      User         @relation(fields: [userId], references: [id])
+// }
+
+// model Balance{
+//   id Int @id @default(autoincrement())
+//   userId Int @unique
+//   amount Int
+//   locked Int
+//   user User @relation(fields: [userId] , references: [id])
+// }
+// model p2pTransfer{
+//   id Int @id @default(autoincrement())
+//   fromUserId Int 
+//   fromUser   User  @relation(name: "FromUserRelation", fields: [fromUserId], references: [id])
+//   toUserId Int 
+//   toUser     User         @relation(name: "ToUserRelation", fields: [toUserId], references: [id])
+//    timestamp  DateTime
+//    amount     Int
+  
+// }
+// model Account {
+//   id                 Int  @id @default(autoincrement())
+//   userId             Int
+//   type               String
+//   provider           String
+//   providerAccountId  String
+//   refresh_token      String? @db.Text
+//   access_token       String? @db.Text
+//   expires_at         Int?
+//   token_type         String?
+//   scope              String?
+//   id_token           String? @db.Text
+//   session_state      String?
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([provider, providerAccountId])
+// }
+
+// model Session {
+//   id           String   @id @default(cuid())
+//   sessionToken String   @unique
+//   userId       Int
+//   expires      DateTime
+//   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+// }
+
+// model VerificationToken {
+//   identifier String
+//   token      String   @unique
+//   expires    DateTime
+
+//   @@unique([identifier, token])
+// }
+
+// enum OnRampStatus{
+//   Success
+//   Failure
+//   Processing
+// }
+// enum AuthType{
+//   Google
+//   Github
+// }
+
+
