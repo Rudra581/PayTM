@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 const pool = new Pool({
-  connectionString: "postgres://24c2dbb0c92fdeb4eb4763e27f0b4d13aa560dc75cef6c83eacf22d50143d795:sk_uYx4pgFumjeHR4m3YkLKJ@db.prisma.io:5432/postgres?sslmode=require&pool=true",
+  connectionString: "",
   ssl: { rejectUnauthorized: false }
 });
 
